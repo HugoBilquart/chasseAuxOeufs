@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>Chasse aux oeufs NodeJS</title>
+        <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+        <link rel="stylesheet" type="text/css" href="style.css">
+        <!-- TODOLIST
+            - Classement : Entrer un pseudo à la fin de la partie, enregistrer en base avec le temps du chrono + page de classement
+            - Taille des oeufs aléatoire (interval)
+            - Radar avec le curseur : Onde plus ou moins importante selon la proximité d'un oeuf
+        -->
+    </head>
+ 
+    <body>
+        <!-- INTERFACE -->   
+        <div id="interface">
+            <h1>Chasse aux oeufs</h1>
+            <p id="eggRemains">Encore <b>X</b> oeuf(s) à trouver</p>
+            <p id="chronotime"></p>
+        </div>
+        <!-- FIN INTERFACE -->
+
+        <!-- PLATEAU DE JEU -->
+        <div class="container-fluid">
+            <div class="row" id="content">
+                <div class="col-xl-12" id="board"></div>
+                <div class="col-xl-12" id="form">
+                    <h2>Joyeux Pâques !</h2>
+                    <p>10 oeufs ont été déposés près de chez vous. A vous de les trouver.</p>
+                    <p>Appuyer sur le bouton quand vous êtes prêt</p>  
+                    <input type="button" value="Commencer" class="btn btn-primary" id="start" />
+                </div>
+                <div class="col-xl-12" id="end"></div>
+            </div>
+        </div> 
+        <!-- FIN PLATEAU DE JEU -->
+
+        <!-- PIED DE PAGE --> 
+        <div id="footer">
+            <p>C'est juste un mini-jeu utilisant NodeJS</p>
+            <p>Hugo BILQUART - 2020</p>
+        </div>
+        <!-- FIN PIED DE PAGE -->
+    </body>
+    <script src="http://code.jquery.com/jquery-1.10.1.min.js"></script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="chrono.js"></script>
+    <script>
+        /**
+         * @param {number} countEgg
+         * @returns nothing
+         * @description : Create and spread link (egg) a defined time.
+         */
+        function createEggs(countEgg) {
+            for($i = 0; $i < countEgg; $i++) {
+                //Création d'un lien et d'une image (oeuf)
+                $("#board").append('<a class="egg"><img src="egg.png"></a>');
+
+                //Calcul aléatoire du placement de l'oeuf, répétition si l'oeuf sort de la surface de jeu
+                do {
+                    var posx = (Math.random() * ($('#board').width() - 0)).toFixed();
+                } while(posx > $('#board').width() - 186 || posx < 0);
+
+                do {
+                    var posy = (Math.random() * ($('#board').height() - 0)).toFixed();
+                } while(posy > $('#board').height() - 256 || posy < 0)
+
+                //Dissimulation plus ou moins importante de l'oeuf + placement
+                $($('.egg')[$i]).css('opacity',Math.random());
+                $($('.egg')[$i]).css('left', posx + 'px');
+                $($('.egg')[$i]).css('top', posy + 'px');
+            }
+        }
+
+        //Actualiser le compteur d'oeufs restants à trouver
+        function refreshCount() {
+            $('#eggRemains > b').html($('.egg').length);
+        }
+
+        $('document').ready(function(){
+            $('#board').css('opacity',0.4);
+
+            $('#start').click(function(){
+                //Mise en marche du chronomètre
+                chronoStart();
+                var socket = io.connect('http://localhost:8000');
+                socket.emit('ready');
+
+                socket.on('start', function(message) {
+                    //Cacher la bannière de début de partie
+                    $('#form').css('display','none');
+                    
+                    //Création et mélange d'un nombre d'oeuf défini
+                    createEggs(message);
+
+                    //Actualisation de l'interface (Visibilité + nombre d'oeuf)
+                    $('#eggRemains > b').html($('.egg').length);
+                    $('#board').css('opacity',1);
+
+                    //Si un oeuf est trouvé, animation + requete serveur
+                    $('.egg').click(function(){
+                        $(this).addClass('found');
+                        
+                        $(this).css('opacity',1);
+
+                        $(this).fadeOut(1000,'swing').queue(function() { $(this).remove(); refreshCount(); });
+
+                        socket.emit('eggFound');
+                    });
+                })
+
+                //Quand tous les oeufs ont été trouvé
+                socket.on('finished', function(message) {
+                    //Arreter le jeu
+                    $('#board').css('opacity',0.4);
+                    chronoStop();
+
+                    //Conversion du chronomètre en texte
+                    $results = '';
+                    $chronoParts = $('#chronotime').text().split(':');
+                    console.log($chronoParts);
+                    if($chronoParts[0] > 0) {
+                        $chronoHeures = $chronoParts[0] + ' heure'; 
+                        if($chronoParts[0] > 1) {
+                            $chronoHeures = $chronoHeures + 's';
+                        }
+                        $results = $chronoHeures;
+                    }
+                    if($chronoParts[1] > 0) {
+                        $chronoMinutes = parseInt($chronoParts[1],10) + ' minute';
+                        if($chronoParts[1] > 1) {
+                            $chronoMinutes = $chronoMinutes + 's';
+                        }
+                        $results = $results + $chronoMinutes + ' et ';     
+                    }
+                    $chronoSeconds = parseFloat($chronoParts[2] + "." + $chronoParts[3]) + ' secondes';
+                    $results = $results + $chronoSeconds;
+
+                    //Affichage du bandeau de fin de partie
+                    $('#end').css('display','block');
+                    $('#end').append('<h2>Vous avez gagné !</h2><br/>');
+                    $('#end').append('<p>Vous avez trouvé les oeufs en ' + $results + '</p>');
+                    $('#end').append('<button type="button" class="btn btn-secondary" onclick="window.location.reload()">Rejouer</button>');
+                });
+            });
+        });
+
+        
+
+        
+    </script>
+</html>
