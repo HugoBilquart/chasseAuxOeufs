@@ -7,30 +7,6 @@ var express = require('express')
     server = require('http').createServer(app),
     io = require('socket.io').listen(server)
 
-function createDb() {
-    let db = new sqlite3.Database('ranking/classement.sqlite');
-            
-    db.run('CREATE TABLE `classement` ( `id` INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT, `date` TEXT NOT NULL, `pseudo` TEXT, `time` TEXT NOT NULL )');
-    
-    db.close();
-}
-
-function getRanking() {
-    let db = new sqlite3.Database('ranking/classement.sqlite');
-
-    var classement = new Array();
-
-    db.serialize(function() {
-        db.each("SELECT * FROM classement ORDER BY time", (error, row) => {
-            classement.push(row);
-        });
-    });
-
-    db.close();
-
-    return classement;
-}
-
 //Dossier ressources (images, css, js)
 app.use('/', express.static('ressources'));
 
