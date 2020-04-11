@@ -6,8 +6,7 @@
         <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
         <link rel="stylesheet" type="text/css" href="style.css">
         <!-- TODOLIST
-            - Classement : Entrer un pseudo à la fin de la partie, enregistrer en base avec le temps du chrono + page de classement
-            - Taille des oeufs aléatoire (interval)
+            - Classement : Afficher la place dans le classement après la saisie du nom + page de classement
             - Radar avec le curseur : Onde plus ou moins importante selon la proximité d'un oeuf
         -->
     </head>
@@ -57,14 +56,19 @@
                 //Création d'un lien et d'une image (oeuf)
                 $("#board").append('<a class="egg"><img src="egg.png"></a>');
 
+                //Definition aléatoire de la taille de l'oeuf dans un intervalle (50 - 100)
+                var size = Math.round(Math.random()*(100-50))+50;
+                $(".egg > img").last().css("height",size);
+                
+
                 //Calcul aléatoire du placement de l'oeuf, répétition si l'oeuf sort de la surface de jeu
                 do {
                     var posx = (Math.random() * ($('#board').width() - 0)).toFixed();
-                } while(posx > $('#board').width() - 186 || posx < 0);
+                } while(posx > $('#board').width() - size || posx < 0);
 
                 do {
                     var posy = (Math.random() * ($('#board').height() - 0)).toFixed();
-                } while(posy > $('#board').height() - 256 || posy < 0)
+                } while(posy > $('#board').height() - size || posy < 0)
 
                 //Dissimulation plus ou moins importante de l'oeuf + placement
                 $($('.egg')[$i]).css('opacity',Math.random());
@@ -116,10 +120,15 @@
                     $('#board').css('opacity',0.4);
                     chronoStop();
 
+                    var pseudo = prompt('Entrer votre nom pour le classement');
+
+                    socket.emit('pseudo',pseudo,$('#chronotime').text());
+                });
+
+                socket.on('ranked',function() {
                     //Conversion du chronomètre en texte
                     $results = '';
                     $chronoParts = $('#chronotime').text().split(':');
-                    console.log($chronoParts);
                     if($chronoParts[0] > 0) {
                         $chronoHeures = $chronoParts[0] + ' heure'; 
                         if($chronoParts[0] > 1) {

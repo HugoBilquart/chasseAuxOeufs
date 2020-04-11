@@ -1,5 +1,7 @@
-var fs = require('fs');
+const sqlite3 = require('sqlite3').verbose();
+const date = require('date-and-time');
 
+var fs = require('fs');
 var express = require('express')
     app = express(),
     server = require('http').createServer(app),
@@ -28,6 +30,24 @@ io.sockets.on('connection', function (socket) {
             socket.emit('finished');
             console.log('Partie terminée');
         }
+    });
+
+    socket.on('pseudo', function(pseudo,chrono) {
+        let db = new sqlite3.Database('ranking/classement.sqlite');
+
+        var now = new Date();
+        var currentdate = date.format(now, 'YYYY-MM-DD HH:mm:ss');
+
+        db.run('INSERT INTO classement(date, pseudo, time) VALUES(?, ?, ?)', [currentdate,pseudo,chrono], (err) => {
+            if(err) {
+                return console.log(err.message); 
+            }
+            console.log('Score enregistré');
+        });
+
+        db.close();
+
+        socket.emit('ranked');
     });
 });
 
