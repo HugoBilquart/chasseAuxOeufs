@@ -1,5 +1,5 @@
 # chasseAuxOeufs
-Mini-jeu simple de chasse aux oeufs de Pâques
+Mini-jeu de chasse aux oeufs de Pâques
 
 ## Le jeu :
 
